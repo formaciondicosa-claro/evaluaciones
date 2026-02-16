@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prueba</title>
+  <style>
+    :root{--bg:#0b1020;--card:#121a33;--soft:#1b2650;--txt:#eaf0ff;--mut:#b9c3e6;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}
+    *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Arial}
+    body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#121a33,#0b1020);color:var(--txt);display:flex;justify-content:center;padding:18px}
+    .wrap{width:100%;max-width:980px}
+    .card{background:rgba(18,26,51,.92);border:1px solid rgba(185,195,230,.18);border-radius:16px;padding:18px;margin:12px 0;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+    h1,h2{margin:0 0 10px}
+    p{color:var(--mut);margin:8px 0}
+    label{display:block;margin:10px 0 6px;color:var(--mut);font-size:.92rem}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(185,195,230,.22);background:#0e1633;color:var(--txt);outline:none}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .btn{cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:#2a3a7a;color:var(--txt)}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .btn.ok{background:linear-gradient(135deg,#1f7a4a,#22c55e)}
+    .topbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .pill{padding:8px 10px;border-radius:999px;background:rgba(185,195,230,.12);border:1px solid rgba(185,195,230,.18);color:var(--mut);font-size:.92rem}
+    .timer{font-variant-numeric:tabular-nums;color:#fff}
+    .q{padding:14px;border-radius:14px;background:rgba(185,195,230,.07);border:1px solid rgba(185,195,230,.14);margin-top:12px}
+    .opt{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;border:1px solid rgba(185,195,230,.16);background:rgba(14,22,51,.55);margin:8px 0}
+    .opt input{width:auto;margin-top:2px}
+    .hidden{display:none!important}
+    .warn{color:var(--warn)}
+    .badTxt{color:var(--bad)}
+    .okTxt{color:var(--ok)}
+    img.qimg{max-width:100%;border-radius:12px;border:1px solid rgba(185,195,230,.18);margin:10px 0;display:block}
+    .small{font-size:.9rem}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>Prueba de Conocimiento </h1>
+    <p>
+  Duración: <b><span id="duracionTxt"></span> minutos</b>.
+  Si el tiempo termina, la prueba se envía automáticamente.
+</p>
+
+    <p class="small warn">Recomendación: usar PC y una sola pestaña del navegador.</p>
+  </div>
+
+  <div id="stepValidate" class="card">
+    <h2>Registro y Validación</h2>
+    <p>Ingresa tu cédula. Si estás citado, podrás iniciar la prueba.</p>
+
+    <div class="row">
+      <div>
+        <label>Cédula</label>
+        <input id="cedula" inputmode="numeric" placeholder="Ej: 1000123456" />
+      </div>
+      <div>
+        <label>Celular</label>
+        <input id="celular" inputmode="tel" placeholder="Ej: 3001234567" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Correo</label>
+        <input id="email" type="email" placeholder="correo@dominio.com" />
+      </div>
+      <div>
+        <label>Confirmación</label>
+        <input id="confirm" placeholder="Escribe: ACEPTO" />
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:12px">
+      <button id="btnValidate" class="btn">Validar citación</button>
+      <button id="btnStart" class="btn ok" disabled>Iniciar prueba</button>
+    </div>
+
+    <p id="msgValidate" class="small"></p>
+  </div>
+
+  <div id="stepExam" class="card hidden">
+    <div class="topbar">
+      <div class="pill"><b id="who"></b> <span id="whoRole"></span></div>
+      <div class="pill timer">Tiempo: <b id="timer">45:00</b></div>
+      <div class="pill">Pregunta <b id="qIndex">1</b>/<b id="qTotal">0</b></div>
+    </div>
+
+    <div id="qBox" class="q"></div>
+
+    <div style="display:flex;gap:10px;justify-content:space-between;margin-top:12px;flex-wrap:wrap">
+<div style="display:flex;gap:10px">
+        <button id="btnNext" class="btn">Siguiente</button>
+        <button id="btnSubmit" class="btn ok hidden">Enviar</button>
+      </div>
+    </div>
+
+    <p id="msgExam" class="small"></p>
+  </div>
+
+  <div id="stepDone" class="card hidden">
+    <h2>Prueba enviada</h2>
+    <p id="doneText"></p>
+  </div>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, addDoc, collection, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+  const firebaseConfig = {
+  "apiKey": "AIzaSyCOjsYhhyybNcfiJE-TMAa5UMJsoHQ7A7Y",
+  "authDomain": "prueba-supervisor-de367.firebaseapp.com",
+  "projectId": "prueba-supervisor-de367",
+  "storageBucket": "prueba-supervisor-de367.firebasestorage.app",
+  "messagingSenderId": "63533024121",
+  "appId": "1:63533024121:web:3ef5ea21a1f157ea32a5a8"
+};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let QUESTIONS = [
+
+
+  {
+    id: "Q1",
+    question: "¿Qué es HFC?",
+    options: [
+      "Una red que combina las ventajas de la fibra con la corriente",
+      "Una red que combina las ventajas de la fibra con el cable coaxial",
+      "Una red que combina las desventajas de la fibra con el cable coaxial",
+      "Una red que combina las ventajas de la fibra con el UTP"
+    ],
+    correct: 1
+  },
+
+  {
+    id: "Q2",
+    question: "La señal de televisión llega a la cabecera de manera:",
+    options: [
+      "Satelital",
+      "Vía WiFi",
+      "Por cable",
+      "Ninguna de las anteriores"
+    ],
+    correct: 0
+  },
+
+  {
+    id: "Q3",
+    question: "¿Qué es la cabecera?",
+    options: [
+      "Donde toman señal los técnicos",
+      "Una parte irrelevante de la red",
+      "Es la encargada de recibir la señal de manera satelital",
+      "Lugar donde se encuentran los multitap"
+    ],
+    correct: 2
+  },
+
+  {
+    id: "Q4",
+    question: "La red troncal maneja cable de fibra óptica:",
+    options: [
+      "Verdadero",
+      "Falso"
+    ],
+    correct: 0
+  },
+
+  {
+    id: "Q5",
+    question: "¿Cuál es la función del nodo óptico?",
+    options: [
+      "Convertir señales ópticas en eléctricas y viceversa",
+      "Alimentar la cabecera",
+      "Este se encuentra en el SDS",
+      "Amplificar la señal"
+    ],
+    correct: 0
+  }
+
+];
+
+    
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+
+  const DURATION_SECONDS = 15 * 60;
+// ✅ Mostrar duración en pantalla automáticamente
+document.getElementById("duracionTxt").textContent = Math.floor(DURATION_SECONDS / 60);
+  // ✅ Bloque de estado
+  let candidate = null;
+  let startedAtMs = null;
+  let deadlineMs = null;
+  let timerHandle = null;
+  let current = 0;
+  const answers = {};
+
+  // ✅ Elementos del DOM
+  const stepValidate = document.getElementById("stepValidate");
+  const stepExam = document.getElementById("stepExam");
+  const stepDone = document.getElementById("stepDone");
+
+  const cedulaEl = document.getElementById("cedula");
+  const celularEl = document.getElementById("celular");
+  const emailEl = document.getElementById("email");
+  const confirmEl = document.getElementById("confirm");
+
+  const btnValidate = document.getElementById("btnValidate");
+  const btnStart = document.getElementById("btnStart");
+  const msgValidate = document.getElementById("msgValidate");
+
+  const who = document.getElementById("who");
+  const whoRole = document.getElementById("whoRole");
+  const timerEl = document.getElementById("timer");
+  const qIndexEl = document.getElementById("qIndex");
+  const qTotalEl = document.getElementById("qTotal");
+  const qBox = document.getElementById("qBox");
+  const msgExam = document.getElementById("msgExam");
+
+  const btnNext = document.getElementById("btnNext");
+  const btnSubmit = document.getElementById("btnSubmit");
+
+  const doneText = document.getElementById("doneText");
+
+  // Total de preguntas
+  qTotalEl.textContent = String(QUESTIONS.length);
+
+ 
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
+
+  function setValidateMsg(text, cls="small") {
+    msgValidate.className = cls;
+    msgValidate.textContent = text;
+  }
+
+  function setExamMsg(text, cls="small") {
+    msgExam.className = cls;
+    msgExam.textContent = text;
+  }
+
+  btnValidate.addEventListener("click", async () => {
+    const cedula = (cedulaEl.value || "").trim();
+    if (!cedula) return setValidateMsg("Ingresa tu cédula.", "small badTxt");
+
+    setValidateMsg("Validando citación...", "small");
+    btnValidate.disabled = true;
+
+    try {
+      const ref = doc(db, "candidates", cedula);
+      const snap = await getDoc(ref);
+
+      if (!snap.exists()) {
+        candidate = null;
+        btnStart.disabled = true;
+        setValidateMsg("No aparece como citado. Verifica tu cédula o informa al evaluador.", "small badTxt");
+      } else {
+        candidate = snap.data();
+        setValidateMsg(`Citado: ${candidate.nombre}. Puedes iniciar.`, "small okTxt");
+        btnStart.disabled = false;
+      }
+    } catch (e) {
+      console.error(e);
+      setValidateMsg("Error validando. Reintenta o informa al evaluador.", "small badTxt");
+    } finally {
+      btnValidate.disabled = false;
+    }
+  });
+
+  btnStart.addEventListener("click", () => {
+    if (!candidate) return;
+
+    const celular = (celularEl.value || "").trim();
+    const email = (emailEl.value || "").trim();
+    const confirm = (confirmEl.value || "").trim().toUpperCase();
+
+    if (!celular || !email) return setValidateMsg("Celular y correo son obligatorios.", "small badTxt");
+    if (confirm !== "ACEPTO") return setValidateMsg('Debes escribir "ACEPTO" para iniciar.', "small badTxt");
+
+    candidate.email = email;
+    candidate.celular = celular;
+
+    startedAtMs = Date.now();
+    deadlineMs = startedAtMs + DURATION_SECONDS * 1000;
+
+    
+
+    // Preguntas aleatorias por intento
+    QUESTIONS = shuffleArray([...QUESTIONS]);
+hide(stepValidate);
+    show(stepExam);
+
+    who.textContent = candidate.nombre;
+    whoRole.textContent = `(${candidate.cargo})`;
+
+    current = 0;
+    renderQuestion();
+    startTimer();
+    setExamMsg("Responde todas las preguntas. Puedes enviar antes de que termine el tiempo.", "small");
+  });
+
+  function startTimer() {
+    const tick = () => {
+      const left = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
+      timerEl.textContent = fmtTime(left);
+      if (left <= 0) {
+        clearInterval(timerHandle);
+        timerHandle = null;
+        setExamMsg("Tiempo finalizado. Enviando automáticamente...", "small warn");
+        submitExam(true);
+      }
+    };
+    tick();
+    timerHandle = setInterval(tick, 500);
+  }
+
+  function renderQuestion() {
+    const q = QUESTIONS[current];
+    qIndexEl.textContent = String(current + 1);
+
+    const selected = (answers[q.id] ?? null);
+
+    const imgs = (q.images || []).map(src => `<img class="qimg" src="${src}" alt="Imagen de pregunta"/>`).join("");
+
+    const opts = q.options.map((txt, idx) => {
+      const checked = (selected === idx) ? "checked" : "";
+      const letter = String.fromCharCode(65+idx);
+      return `
+        <label class="opt">
+          <input type="radio" name="opt" value="${idx}" ${checked}/>
+          <div><b>${letter}.</b> ${escapeHtml(txt)}</div>
+        </label>
+      `;
+    }).join("");
+
+    qBox.innerHTML = `
+  <h3 style="margin:8px 0 10px">${escapeHtml(q.question)}</h3>
+  ${imgs}
+  <div>${opts}</div>
+`;
+
+    qBox.querySelectorAll('input[name="opt"]').forEach(r => {
+      r.addEventListener("change", (ev) => {
+        answers[q.id] = Number(ev.target.value);
+      });
+    });
+btnNext.disabled = current === QUESTIONS.length - 1;
+    // Flujo sin retroceso: "Enviar" solo en la última pregunta
+    if (current === QUESTIONS.length - 1) {
+      btnNext.classList.add("hidden");
+      btnSubmit.classList.remove("hidden");
+    } else {
+      btnNext.classList.remove("hidden");
+      btnSubmit.classList.add("hidden");
+    }
+
+  }
+btnNext.addEventListener("click", () => {
+    const q = QUESTIONS[current];
+    if (answers[q.id] === undefined) {
+      setExamMsg("Debes seleccionar una respuesta para continuar.", "small warn");
+      return;
+    }
+    if (current < QUESTIONS.length - 1) {
+      current++;
+      renderQuestion();
+    }
+  });
+btnSubmit.addEventListener("click", () => {
+    const q = QUESTIONS[current];
+    if (answers[q.id] === undefined) {
+      setExamMsg("Debes seleccionar una respuesta para enviar.", "small warn");
+      return;
+    }
+    submitExam(false);
+  });
+async function submitExam(isAuto) {
+    btnNext.disabled = true; btnSubmit.disabled = true;
+    if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+
+    const finishedAtMs = Date.now();
+    const durationSeconds = Math.min(DURATION_SECONDS, Math.max(0, Math.floor((finishedAtMs - startedAtMs) / 1000)));
+
+    let score = 0;
+    const total = QUESTIONS.length;
+
+    for (const q of QUESTIONS) {
+      const a = (answers[q.id] ?? -1);
+      if (a === q.correct) score++;
+    }
+    const percent = Math.round((score / total) * 10000) / 100; // 2 decimales
+
+    const payload = {
+      cedula: (cedulaEl.value || "").trim(),
+      nombre: candidate.nombre,
+      cargo: candidate.cargo,
+      email: candidate.email,
+      celular: candidate.celular,
+      startedAt: new Date(startedAtMs).toISOString(),
+      finishedAt: new Date(finishedAtMs).toISOString(),
+      durationSeconds,
+      score,
+      total,
+      percent,
+      answers: answers,
+      autoSubmitted: !!isAuto,
+      createdAt: serverTimestamp()
+    };
+
+    try {
+      await addDoc(collection(db, "exam_results"), payload);
+
+
+
+      hide(stepExam);
+      show(stepDone);
+
+      doneText.innerHTML = `
+        Registro guardado correctamente.<br/>
+        Cédula: <b>${escapeHtml(payload.cedula)}</b><br/>
+        Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
+        Porcentaje: <b>${payload.percent}%</b>
+      `;
+    } catch (e) {
+      console.error(e);
+      setExamMsg("Error guardando resultados. No cierres la página: informa al evaluador.", "small badTxt");
+      btnSubmit.disabled = false;
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+</script>
+</body>
+</html>
