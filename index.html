@@ -122,68 +122,62 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  let QUESTIONS = [
-
-
+ // ✅ Bancos de preguntas por día (YYYY-MM-DD)
+const QUESTION_SETS = {
+ "2026-02-17": [
   {
-    id: "Q1",
-    question: "¿Qué es HFC?",
-    options: [
-      "Una red que combina las ventajas de la fibra con la corriente",
-      "Una red que combina las ventajas de la fibra con el cable coaxial",
-      "Una red que combina las desventajas de la fibra con el cable coaxial",
-      "Una red que combina las ventajas de la fibra con el UTP"
-    ],
+    id: "H01",
+    question: "Cuando hablamos de la información enviada de la cabecera al usuario, hacemos referencia a:",
+    options: ["Forward", "Retorno", "Atenuación", "Aumento de señal"],
+    correct: 0
+  },
+  {
+    id: "H02",
+    question: "Cuando hablamos de la información enviada del usuario a la cabecera, hacemos referencia a:",
+    options: ["Forward", "Retorno", "Atenuación", "Aumento de señal"],
     correct: 1
   },
-
   {
-    id: "Q2",
-    question: "La señal de televisión llega a la cabecera de manera:",
-    options: [
-      "Satelital",
-      "Vía WiFi",
-      "Por cable",
-      "Ninguna de las anteriores"
-    ],
+    id: "H03",
+    question: "¿Cuáles son los divisores de señal?",
+    options: ["Acopladores y splitter", "Acopladores y filtro hp", "Splitter y atenuadores", "Filtro cisp"],
     correct: 0
   },
-
   {
-    id: "Q3",
-    question: "¿Qué es la cabecera?",
-    options: [
-      "Donde toman señal los técnicos",
-      "Una parte irrelevante de la red",
-      "Es la encargada de recibir la señal de manera satelital",
-      "Lugar donde se encuentran los multitap"
-    ],
+    id: "H04",
+    question: "¿Cómo se llama la etiqueta que colocamos para identificar la acometida que estamos realizando?",
+    options: ["Filtro cisp", "Filtro hp", "Marker", "No se marca"],
     correct: 2
   },
-
   {
-    id: "Q4",
-    question: "La red troncal maneja cable de fibra óptica:",
+    id: "H05",
+    question: "¿Cuál es la función de un Candado Loocking?",
     options: [
-      "Verdadero",
-      "Falso"
+      "Aumentar la señal",
+      "Disminuir la señal",
+      "Permitir el ingreso de señales no deseadas",
+      "Evitar el ingreso de señales no deseadas"
     ],
-    correct: 0
-  },
-
-  {
-    id: "Q5",
-    question: "¿Cuál es la función del nodo óptico?",
-    options: [
-      "Convertir señales ópticas en eléctricas y viceversa",
-      "Alimentar la cabecera",
-      "Este se encuentra en el SDS",
-      "Amplificar la señal"
-    ],
-    correct: 0
+    correct: 3
   }
+],
 
-];
+  "2026-02-18": [
+    // ✅ AQUÍ PEGAS LAS PREGUNTAS DEL OTRO DÍA (día 2)
+    // OJO: ids distintos (Q1, Q2... o Q6, Q7... da igual, pero que no se repitan dentro del mismo día)
+  ],
+
+  "2026-02-19": [
+    // ✅ Día 3
+  ],
+
+  "2026-02-20": [
+    // ✅ Día 4
+  ]
+};
+
+// ✅ aquí se cargará el set del día
+let QUESTIONS = [];
 
     
   function shuffleArray(arr) {
@@ -193,6 +187,10 @@
     }
     return arr;
   }
+function todayISO() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0,10);
+}
 
 
   const DURATION_SECONDS = 15 * 60;
@@ -303,7 +301,24 @@ document.getElementById("duracionTxt").textContent = Math.floor(DURATION_SECONDS
     
 
     // Preguntas aleatorias por intento
-    QUESTIONS = shuffleArray([...QUESTIONS]);
+    // ✅ Cargar preguntas según el día
+const key = todayISO();
+QUESTIONS = QUESTION_SETS[key] ? [...QUESTION_SETS[key]] : [];
+
+if (QUESTIONS.length === 0) {
+  setValidateMsg(`No hay preguntas configuradas para hoy (${key}). Informa al evaluador.`, "small badTxt");
+  return;
+}
+
+// ✅ Actualizar total (porque cambia según el día)
+qTotalEl.textContent = String(QUESTIONS.length);
+
+// ✅ Resetear respuestas por intento
+for (const k in answers) delete answers[k];
+
+// ✅ Preguntas aleatorias por intento
+QUESTIONS = shuffleArray(QUESTIONS);
+
 hide(stepValidate);
     show(stepExam);
 
