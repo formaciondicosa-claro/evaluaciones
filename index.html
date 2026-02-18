@@ -162,10 +162,34 @@ const QUESTION_SETS = {
   }
 ],
 
-  "2026-02-18": [
-    // ✅ AQUÍ PEGAS LAS PREGUNTAS DEL OTRO DÍA (día 2)
-    // OJO: ids distintos (Q1, Q2... o Q6, Q7... da igual, pero que no se repitan dentro del mismo día)
-  ],
+  "2026-02-19": [
+  {
+    id: "D3Q01",
+    question: "¿Cuál es el diámetro del cable coaxial?",
+    options: ["0.7 cm", "7 cm", "7 mm", "0.5 mm"],
+    // ✅ RG6 = 7 mm
+    correct: 1
+  },
+  {
+    id: "D3Q02",
+    question: "¿Cuál es la distancia de corte entre el conductor central, malla, chaqueta?",
+    options: [
+      "¼” conductor central, ¼” malla",
+      "¼” conductor central, 1/8” malla",
+      "¼” conductor central, ¼” malla dieléctrica",
+      "¼” dieléctrico, 1/8” malla"
+    ],
+    // ⚠️ No viene marcada en el archivo (me dices cuál es y la ajusto)
+    correct: 1
+  },
+  {
+    id: "D3Q03",
+    question: "¿Cuál es el nombre del dispositivo que une el cable coaxial con los diferentes splitter y acopladores?",
+    options: ["Conector rg6", "Conector rm6", "Conector rc6", "Conector rb6"],
+    // ✅ Respuesta correcta: RG6
+    correct: 1
+  }
+],
 
   "2026-02-19": [
     // ✅ Día 3
