@@ -231,8 +231,15 @@ const { data: session } = await supabase
 .select("id")
 .eq("estado","programada")
 .limit(1)
-.single()
+.maybeSingle()
 
+  if (!session) {
+setValidateMsg("No hay sesión activa en el sistema.", "small badTxt")
+btnValidate.disabled = false
+return
+}
+
+sessionId = session.id
 if (!session) {
 setValidateMsg("No hay sesión de evaluación activa.", "small badTxt")
 btnValidate.disabled = false
