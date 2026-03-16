@@ -57,6 +57,8 @@
       <div>
         <label>Celular</label>
         <input id="celular" inputmode="tel" placeholder="Ej: 3001234567" />
+        <label>Token de evaluación</label>
+<input id="token" placeholder="Ej: AB12CD" />
       </div>
     </div>
 
@@ -82,7 +84,7 @@
   <div id="stepExam" class="card hidden">
     <div class="topbar">
       <div class="pill"><b id="who"></b> <span id="whoRole"></span></div>
-      <div class="pill timer">Tiempo: <b id="timer">45:00</b></div>
+      <div class="pill timer">Tiempo: <b id="timer">15:00</b></div>
       <div class="pill">Pregunta <b id="qIndex">1</b>/<b id="qTotal">0</b></div>
     </div>
 
@@ -150,6 +152,7 @@ let employeeId = null
   const celularEl = document.getElementById("celular");
   const emailEl = document.getElementById("email");
   const confirmEl = document.getElementById("confirm");
+  const tokenEl = document.getElementById("token");
 
   const btnValidate = document.getElementById("btnValidate");
   const btnStart = document.getElementById("btnStart");
@@ -212,7 +215,7 @@ const { data: employee, error: err1 } = await supabase
 .eq("documento", cedula)
 .single()
 
-if (!employee) {
+if (err1 || !employee) {
 candidate = null
 btnStart.disabled = true
 setValidateMsg("Empleado no encontrado.", "small badTxt")
@@ -220,18 +223,20 @@ btnValidate.disabled = false
 return
 }
 
+
+
 // 2️⃣ buscar sesión activa
 const { data: session } = await supabase
-.from("training_sessions")
+.from("sessions")
 .select("id")
-.eq("activo", true)
+.eq("estado","programada")
+.limit(1)
 .single()
-  if (!session) {
 
+if (!session) {
 setValidateMsg("No hay sesión de evaluación activa.", "small badTxt")
 btnValidate.disabled = false
 return
-
 }
 
 
@@ -239,14 +244,14 @@ sessionId = session.id
 employeeId = employee.id
 
 // 3️⃣ verificar si está citado
-const { data: attendee } = await supabase
-.from("session_attendees")
+const { data: attendee, error: citError } = await supabase
+.from("citations")
 .select("*")
 .eq("session_id", session.id)
 .eq("employee_id", employee.id)
 .single()
 
-if (!attendee) {
+if (citError || !attendee) {
 
 candidate = null
 btnStart.disabled = true
@@ -271,6 +276,27 @@ btnValidate.disabled = false
 
 })
   btnStart.addEventListener("click", async () => {
+    const token = (tokenEl.value || "").trim().toUpperCase()
+
+if(!token){
+setValidateMsg("Debes ingresar el token de evaluación.","small badTxt")
+return
+}
+    // validar token activo
+
+const { data: tokenRow, error: tokenError } = await supabase
+.from("evaluation_tokens")
+.select("evaluation_id")
+.eq("token",token)
+.eq("activo",true)
+.single()
+
+if(tokenError || !tokenRow){
+setValidateMsg("Token inválido o expirado.","small badTxt")
+return
+}
+
+    const evaluationId = tokenRow.evaluation_id
     if (!candidate) return;
 
     const celular = (celularEl.value || "").trim();
@@ -290,27 +316,42 @@ btnValidate.disabled = false
 const { data, error } = await supabase
 .from("evaluation_questions")
 .select("*")
-.eq("evaluation_id", sessionId)
+.eq("evaluation_id", evaluationId)
 
 if (error) {
-  setValidateMsg("Error cargando preguntas.", "small badTxt")
-  console.error(error)
-  return
+setValidateMsg("Error cargando preguntas.", "small badTxt")
+console.error(error)
+return
 }
 
+if (!data || data.length === 0) {
+setValidateMsg("Esta evaluación no tiene preguntas cargadas.", "small badTxt")
+return
+}
+const { data: evalData, error: evalError } = await supabase
+.from("evaluations")
+.select("preguntas_totales")
+.eq("id", evaluationId)
+.single()
+
+if(evalError || !evalData){
+setValidateMsg("No se encontró la configuración de la evaluación.","small badTxt")
+return
+}
+    
 QUESTIONS = data.map(q => ({
   id: q.id,
-  question: q.question,
+  question: q.pregunta,
   options: [
     q.option_a,
     q.option_b,
     q.option_c,
     q.option_d
   ],
-  correct: ["A","B","C","D"].indexOf(q.correct_option)
+  correct: ["A","B","C","D"].indexOf(q.respuesta_correcta)
 }))
 
-QUESTIONS = shuffleArray(QUESTIONS)
+QUESTIONS = shuffleArray(QUESTIONS).slice(0, Math.min(evalData.preguntas_totales, QUESTIONS.length))
 
 qTotalEl.textContent = String(QUESTIONS.length)
 
@@ -444,9 +485,15 @@ answers: answers,
 auto_submitted: !!isAuto
 }
 
-await supabase
+const { error: saveError } = await supabase
 .from("exam_results")
 .insert(payload)
+
+if(saveError){
+console.error(saveError)
+setExamMsg("Error guardando resultados.", "small badTxt")
+return
+}
 
 
       hide(stepExam);
