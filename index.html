@@ -491,7 +491,7 @@ const { error: saveError } = await supabase
 
 if(saveError){
 console.error(saveError)
-setExamMsg("Error guardando resultados.", "small badTxt")
+const { error: saveError } = await supabase
 return
 }
 
