@@ -270,7 +270,7 @@ setValidateMsg("Error validando citación.", "small badTxt")
 btnValidate.disabled = false
 
 })
-  btnStart.addEventListener("click", () => {
+  btnStart.addEventListener("click", async () => {
     if (!candidate) return;
 
     const celular = (celularEl.value || "").trim();
