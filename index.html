@@ -106,103 +106,13 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-  import {
-    getFirestore, doc, getDoc, addDoc, collection, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+ 
+ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
-  const firebaseConfig = {
-  "apiKey": "AIzaSyCOjsYhhyybNcfiJE-TMAa5UMJsoHQ7A7Y",
-  "authDomain": "prueba-supervisor-de367.firebaseapp.com",
-  "projectId": "prueba-supervisor-de367",
-  "storageBucket": "prueba-supervisor-de367.firebasestorage.app",
-  "messagingSenderId": "63533024121",
-  "appId": "1:63533024121:web:3ef5ea21a1f157ea32a5a8"
-};
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
- // ✅ Bancos de preguntas por día (YYYY-MM-DD)
-const QUESTION_SETS = {
- "2026-02-17": [
-  {
-    id: "H01",
-    question: "Cuando hablamos de la información enviada de la cabecera al usuario, hacemos referencia a:",
-    options: ["Forward", "Retorno", "Atenuación", "Aumento de señal"],
-    correct: 0
-  },
-  {
-    id: "H02",
-    question: "Cuando hablamos de la información enviada del usuario a la cabecera, hacemos referencia a:",
-    options: ["Forward", "Retorno", "Atenuación", "Aumento de señal"],
-    correct: 1
-  },
-  {
-    id: "H03",
-    question: "¿Cuáles son los divisores de señal?",
-    options: ["Acopladores y splitter", "Acopladores y filtro hp", "Splitter y atenuadores", "Filtro cisp"],
-    correct: 0
-  },
-  {
-    id: "H04",
-    question: "¿Cómo se llama la etiqueta que colocamos para identificar la acometida que estamos realizando?",
-    options: ["Filtro cisp", "Filtro hp", "Marker", "No se marca"],
-    correct: 2
-  },
-  {
-    id: "H05",
-    question: "¿Cuál es la función de un Candado Loocking?",
-    options: [
-      "Aumentar la señal",
-      "Disminuir la señal",
-      "Permitir el ingreso de señales no deseadas",
-      "Evitar el ingreso de señales no deseadas"
-    ],
-    correct: 3
-  }
-],
-
-  "2026-02-18": [
-  {
-    id: "D3Q01",
-    question: "¿Cuál es el diámetro del cable coaxial?",
-    options: ["0.7 cm", "7 cm", "7 mm", "0.5 mm"],
-    // ✅ Respuesta correcta: A
-    correct: 0
-  },
-  {
-    id: "D3Q02",
-    question: "¿Cuál es la distancia de corte entre el conductor central, malla, chaqueta?",
-    options: [
-      "¼” conductor central, ¼” malla",
-      "¼” conductor central, 1/8” malla",
-      "¼” conductor central, ¼” malla dieléctrica",
-      "¼” dieléctrico, 1/8” malla"
-    ],
-    // ✅ Respuesta correcta: A
-    correct: 0
-  },
-  {
-    id: "D3Q03",
-    question: "¿Cuál es el nombre del dispositivo que une el cable coaxial con los diferentes splitter y acopladores?",
-    options: ["Conector rg6", "Conector rm6", "Conector rc6", "Conector rb6"],
-    // ✅ Respuesta correcta: A
-    correct: 0
-  }
-],
-
-  "2026-02-19": [
-    // ✅ Día 3
-  ],
-
-  "2026-02-20": [
-    // ✅ Día 4
-  ]
-};
-
-// ✅ aquí se cargará el set del día
-let QUESTIONS = [];
-
+const supabase = createClient(
+"https://ewlqelsmrnmuvylxlpur.supabase.co",
+"sb_publishable_y6G6nvMYnWpSIpcbrhah_Q_LkvOGktb"
+)
     
   function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
@@ -222,6 +132,9 @@ function todayISO() {
 document.getElementById("duracionTxt").textContent = Math.floor(DURATION_SECONDS / 60);
   // ✅ Bloque de estado
   let candidate = null;
+  let sessionId = null
+let employeeId = null
+  let QUESTIONS = []
   let startedAtMs = null;
   let deadlineMs = null;
   let timerHandle = null;
@@ -278,34 +191,85 @@ document.getElementById("duracionTxt").textContent = Math.floor(DURATION_SECONDS
     msgExam.textContent = text;
   }
 
-  btnValidate.addEventListener("click", async () => {
-    const cedula = (cedulaEl.value || "").trim();
-    if (!cedula) return setValidateMsg("Ingresa tu cédula.", "small badTxt");
+ btnValidate.addEventListener("click", async () => {
 
-    setValidateMsg("Validando citación...", "small");
-    btnValidate.disabled = true;
+const cedula = (cedulaEl.value || "").trim()
 
-    try {
-      const ref = doc(db, "candidates", cedula);
-      const snap = await getDoc(ref);
+if (!cedula) {
+setValidateMsg("Ingresa tu cédula.", "small badTxt")
+return
+}
 
-      if (!snap.exists()) {
-        candidate = null;
-        btnStart.disabled = true;
-        setValidateMsg("No aparece como citado. Verifica tu cédula o informa al evaluador.", "small badTxt");
-      } else {
-        candidate = snap.data();
-        setValidateMsg(`Citado: ${candidate.nombre}. Puedes iniciar.`, "small okTxt");
-        btnStart.disabled = false;
-      }
-    } catch (e) {
-      console.error(e);
-      setValidateMsg("Error validando. Reintenta o informa al evaluador.", "small badTxt");
-    } finally {
-      btnValidate.disabled = false;
-    }
-  });
+setValidateMsg("Validando citación...", "small")
+btnValidate.disabled = true
 
+try {
+
+// 1️⃣ buscar empleado por documento
+const { data: employee, error: err1 } = await supabase
+.from("employees")
+.select("id,nombre,cargo")
+.eq("documento", cedula)
+.single()
+
+if (!employee) {
+candidate = null
+btnStart.disabled = true
+setValidateMsg("Empleado no encontrado.", "small badTxt")
+btnValidate.disabled = false
+return
+}
+
+// 2️⃣ buscar sesión activa
+const { data: session } = await supabase
+.from("training_sessions")
+.select("id")
+.eq("activo", true)
+.single()
+  if (!session) {
+
+setValidateMsg("No hay sesión de evaluación activa.", "small badTxt")
+btnValidate.disabled = false
+return
+
+}
+
+
+sessionId = session.id
+employeeId = employee.id
+
+// 3️⃣ verificar si está citado
+const { data: attendee } = await supabase
+.from("session_attendees")
+.select("*")
+.eq("session_id", session.id)
+.eq("employee_id", employee.id)
+.single()
+
+if (!attendee) {
+
+candidate = null
+btnStart.disabled = true
+setValidateMsg("No estás citado para esta sesión.", "small badTxt")
+
+} else {
+
+candidate = employee
+btnStart.disabled = false
+setValidateMsg(`Citado: ${employee.nombre}`, "small okTxt")
+
+}
+
+} catch (e) {
+
+console.error(e)
+setValidateMsg("Error validando citación.", "small badTxt")
+
+}
+
+btnValidate.disabled = false
+
+})
   btnStart.addEventListener("click", () => {
     if (!candidate) return;
 
@@ -323,53 +287,67 @@ document.getElementById("duracionTxt").textContent = Math.floor(DURATION_SECONDS
     deadlineMs = startedAtMs + DURATION_SECONDS * 1000;
 
     
+const { data, error } = await supabase
+.from("evaluation_questions")
+.select("*")
+.eq("evaluation_id", sessionId)
 
-    // Preguntas aleatorias por intento
-    // ✅ Cargar preguntas según el día
-const key = todayISO();
-QUESTIONS = QUESTION_SETS[key] ? [...QUESTION_SETS[key]] : [];
-
-if (QUESTIONS.length === 0) {
-  setValidateMsg(`No hay preguntas configuradas para hoy (${key}). Informa al evaluador.`, "small badTxt");
-  return;
+if (error) {
+  setValidateMsg("Error cargando preguntas.", "small badTxt")
+  console.error(error)
+  return
 }
 
-// ✅ Actualizar total (porque cambia según el día)
-qTotalEl.textContent = String(QUESTIONS.length);
+QUESTIONS = data.map(q => ({
+  id: q.id,
+  question: q.question,
+  options: [
+    q.option_a,
+    q.option_b,
+    q.option_c,
+    q.option_d
+  ],
+  correct: ["A","B","C","D"].indexOf(q.correct_option)
+}))
 
-// ✅ Resetear respuestas por intento
-for (const k in answers) delete answers[k];
+QUESTIONS = shuffleArray(QUESTIONS)
 
-// ✅ Preguntas aleatorias por intento
-QUESTIONS = shuffleArray(QUESTIONS);
+qTotalEl.textContent = String(QUESTIONS.length)
 
 hide(stepValidate);
-    show(stepExam);
+show(stepExam);
 
-    who.textContent = candidate.nombre;
-    whoRole.textContent = `(${candidate.cargo})`;
+who.textContent = candidate.nombre;
+whoRole.textContent = `(${candidate.cargo})`;
 
-    current = 0;
-    renderQuestion();
-    startTimer();
-    setExamMsg("Responde todas las preguntas. Puedes enviar antes de que termine el tiempo.", "small");
-  });
+current = 0;
+
+renderQuestion();
+startTimer();
+   });
 
   function startTimer() {
-    const tick = () => {
-      const left = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
-      timerEl.textContent = fmtTime(left);
-      if (left <= 0) {
-        clearInterval(timerHandle);
-        timerHandle = null;
-        setExamMsg("Tiempo finalizado. Enviando automáticamente...", "small warn");
-        submitExam(true);
-      }
-    };
-    tick();
-    timerHandle = setInterval(tick, 500);
+
+  const tick = () => {
+
+    const left = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
+
+    timerEl.textContent = fmtTime(left);
+
+    if (left <= 0) {
+      clearInterval(timerHandle)
+      timerHandle = null
+      setExamMsg("Tiempo finalizado. Enviando automáticamente...", "small warn")
+      submitExam(true)
+    }
+
   }
 
+  tick()
+
+  timerHandle = setInterval(tick, 500)
+
+}
   function renderQuestion() {
     const q = QUESTIONS[current];
     qIndexEl.textContent = String(current + 1);
@@ -431,6 +409,8 @@ btnSubmit.addEventListener("click", () => {
     submitExam(false);
   });
 async function submitExam(isAuto) {
+
+try {
     btnNext.disabled = true; btnSubmit.disabled = true;
     if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
 
@@ -447,25 +427,26 @@ async function submitExam(isAuto) {
     const percent = Math.round((score / total) * 10000) / 100; // 2 decimales
 
     const payload = {
-      cedula: (cedulaEl.value || "").trim(),
-      nombre: candidate.nombre,
-      cargo: candidate.cargo,
-      email: candidate.email,
-      celular: candidate.celular,
-      startedAt: new Date(startedAtMs).toISOString(),
-      finishedAt: new Date(finishedAtMs).toISOString(),
-      durationSeconds,
-      score,
-      total,
-      percent,
-      answers: answers,
-      autoSubmitted: !!isAuto,
-      createdAt: serverTimestamp()
-    };
+session_id: sessionId,
+employee_id: employeeId,
+cedula: (cedulaEl.value || "").trim(),
+nombre: candidate.nombre,
+cargo: candidate.cargo,
+email: candidate.email,
+celular: candidate.celular,
+started_at: new Date(startedAtMs).toISOString(),
+finished_at: new Date(finishedAtMs).toISOString(),
+duration_seconds: durationSeconds,
+score: score,
+total: total,
+percent: percent,
+answers: answers,
+auto_submitted: !!isAuto
+}
 
-    try {
-      await addDoc(collection(db, "exam_results"), payload);
-
+await supabase
+.from("exam_results")
+.insert(payload)
 
 
       hide(stepExam);
