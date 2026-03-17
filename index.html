@@ -227,35 +227,37 @@ return
 
 
 
-// 2️⃣ buscar sesión activa
-const { data: session } = await supabase
-.from("sessions")
-.select("id")
-.eq("estado","programada")
-.limit(1)
-.maybeSingle()
+// 🔥 2️⃣ VALIDAR TOKEN Y SACAR SESSION REAL
+const token = (tokenEl.value || "").trim().toUpperCase()
 
-  if (!session) {
-setValidateMsg("No hay sesión activa en el sistema.", "small badTxt")
-btnValidate.disabled = false
-return
+if(!token){
+  setValidateMsg("Debes ingresar el token.", "small badTxt")
+  btnValidate.disabled = false
+  return
 }
 
-if (!session) {
-setValidateMsg("No hay sesión de evaluación activa.", "small badTxt")
-btnValidate.disabled = false
-return
+const { data: tokenRow, error: tokenError } = await supabase
+.from("evaluation_tokens")
+.select("session_id")
+.eq("token", token)
+.eq("activo", true)
+.single()
+
+if(tokenError || !tokenRow){
+  setValidateMsg("Token inválido o expirado.", "small badTxt")
+  btnValidate.disabled = false
+  return
 }
 
-
-sessionId = session.id
+// ✅ SESSION REAL
+sessionId = tokenRow.session_id
 employeeId = employee.id
 
 // 3️⃣ verificar si está citado
 const { data: attendee, error: citError } = await supabase
 .from("citations")
 .select("*")
-.eq("session_id", session.id)
+.eq("session_id", sessionId)
 .eq("employee_id", employee.id)
 .single()
 
@@ -264,12 +266,14 @@ if (citError || !attendee) {
 candidate = null
 btnStart.disabled = true
 setValidateMsg("No estás citado para esta sesión.", "small badTxt")
-
+  
 } else {
 
 candidate = employee
 btnStart.disabled = false
 setValidateMsg(`Citado: ${employee.nombre}`, "small okTxt")
+  tokenEl.disabled = true
+cedulaEl.disabled = true
 
 }
 
@@ -285,37 +289,29 @@ btnValidate.disabled = false
 })
   btnStart.addEventListener("click", async () => {
     const token = (tokenEl.value || "").trim().toUpperCase()
+    if(!sessionId){
+  setValidateMsg("Debes validar el token primero.","small badTxt")
+  return
+}
 
 if(!token){
 setValidateMsg("Debes ingresar el token de evaluación.","small badTxt")
 return
 }
-    // validar token activo
-
-const { data: tokenRow, error: tokenError } = await supabase
+  const { data: tokenRow } = await supabase
 .from("evaluation_tokens")
 .select("evaluation_id, session_id")
 .eq("token",token)
 .eq("activo",true)
 .single()
 
-if(tokenError || !tokenRow){
+if(!tokenRow){
   setValidateMsg("Token inválido o expirado.","small badTxt")
   return
 }
 
-// 🚫 VALIDAR QUE EL TOKEN SEA DE LA MISMA SESIÓN
-if(tokenRow.session_id !== sessionId){
-  setValidateMsg("Este token no pertenece a esta sesión.","small badTxt")
-  return
-}
-
-if(tokenError || !tokenRow){
-setValidateMsg("Token inválido o expirado.","small badTxt")
-return
-}
-
-   const evaluationId = tokenRow.evaluation_id
+const evaluationId = tokenRow.evaluation_id
+sessionId = tokenRow.session_id
 if (!candidate) return;
 
 // 🚫 VALIDAR SI YA PRESENTÓ (ANTES DE ENTRAR AL EXAMEN)
