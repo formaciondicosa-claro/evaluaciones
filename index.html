@@ -294,10 +294,21 @@ return
 
 const { data: tokenRow, error: tokenError } = await supabase
 .from("evaluation_tokens")
-.select("evaluation_id")
+.select("evaluation_id, session_id")
 .eq("token",token)
 .eq("activo",true)
 .single()
+
+if(tokenError || !tokenRow){
+  setValidateMsg("Token inválido o expirado.","small badTxt")
+  return
+}
+
+// 🚫 VALIDAR QUE EL TOKEN SEA DE LA MISMA SESIÓN
+if(tokenRow.session_id !== sessionId){
+  setValidateMsg("Este token no pertenece a esta sesión.","small badTxt")
+  return
+}
 
 if(tokenError || !tokenRow){
 setValidateMsg("Token inválido o expirado.","small badTxt")
