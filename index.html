@@ -302,22 +302,26 @@ setValidateMsg("Token inválido o expirado.","small badTxt")
 return
 }
 
-    const evaluationId = tokenRow.evaluation_id
-    if (!candidate) return;
+   const evaluationId = tokenRow.evaluation_id
+if (!candidate) return;
 
-    // 🚫 VALIDAR SI YA PRESENTÓ
-const { data: intentoPrevio } = await supabase
+// 🚫 VALIDAR SI YA PRESENTÓ (ANTES DE ENTRAR AL EXAMEN)
+const { data: intentoPrevio, error: intentoError } = await supabase
 .from("exam_results")
 .select("id")
 .eq("employee_id", employeeId)
 .eq("session_id", sessionId)
 .limit(1)
 
-if (intentoPrevio && intentoPrevio.length > 0) {
-  setValidateMsg("Ya presentaste esta evaluación.", "small badTxt")
+if (intentoError) {
+  setValidateMsg("Error validando intentos.", "small badTxt")
   return
 }
 
+if (intentoPrevio && intentoPrevio.length > 0) {
+  setValidateMsg("Ya presentaste esta evaluación. No puedes ingresar nuevamente.", "small badTxt")
+  return
+}
     const celular = (celularEl.value || "").trim();
     const email = (emailEl.value || "").trim();
     const confirm = (confirmEl.value || "").trim().toUpperCase();
