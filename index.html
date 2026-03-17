@@ -107,6 +107,8 @@
 
 </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
 <script type="module">
  
  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
@@ -524,12 +526,43 @@ return
       hide(stepExam);
       show(stepDone);
 
-      doneText.innerHTML = `
-        Registro guardado correctamente.<br/>
-        Cédula: <b>${escapeHtml(payload.cedula)}</b><br/>
-        Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
-        Porcentaje: <b>${payload.percent}%</b>
-      `;
+     // 🎯 MENSAJE FINAL CON MASCOTA
+let mensajeFinal = "";
+let color = "";
+
+// 👇 usa tu imagen
+const imagen = "mascota.png";
+
+if (percent >= 80) {
+  mensajeFinal = "🎉 ¡Felicitaciones! Has aprobado la evaluación.";
+  color = "okTxt";
+
+  // 🎉 LANZAR CONFETTI
+  setTimeout(() => {
+    lanzarConfetti();
+  }, 500);
+
+} else {
+  mensajeFinal = "💪 No alcanzaste el puntaje requerido, pero puedes lograrlo. Sigue esforzándote.";
+  color = "warn";
+}
+
+doneText.innerHTML = `
+  <div style="text-align:center">
+    
+    <img src="${imagen}" 
+         style="height:220px;margin-bottom:15px;filter:drop-shadow(0 10px 20px rgba(0,0,0,0.4))"/>
+
+    <h3 class="${color}">${mensajeFinal}</h3>
+    
+    <p>
+      Cédula: <b>${escapeHtml(payload.cedula)}</b><br/>
+      Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
+      Porcentaje: <b>${payload.percent}%</b>
+    </p>
+
+  </div>
+`;
     } catch (e) {
       console.error(e);
       setExamMsg("Error guardando resultados. No cierres la página: informa al evaluador.", "small badTxt");
@@ -537,6 +570,31 @@ return
     }
   }
 
+function lanzarConfetti() {
+  const duration = 2000;
+  const end = Date.now() + duration;
+
+  (function frame() {
+    confetti({
+      particleCount: 5,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 }
+    });
+
+    confetti({
+      particleCount: 5,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 }
+    });
+
+    if (Date.now() < end) {
+      requestAnimationFrame(frame);
+    }
+  })();
+}
+  
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
