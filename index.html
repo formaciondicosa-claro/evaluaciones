@@ -316,7 +316,7 @@ if (!candidate) return;
 
 // 🚫 VALIDAR SI YA PRESENTÓ (ANTES DE ENTRAR AL EXAMEN)
 const { data: intentoPrevio, error: intentoError } = await supabase
-.from("exam_results")
+.from("evaluation_results")
 .select("id")
 .eq("employee_id", employeeId)
 .eq("session_id", sessionId)
