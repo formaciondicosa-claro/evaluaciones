@@ -114,8 +114,8 @@
  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(
-"https://ewlqelsmrnmuvylxlpur.supabase.co",
-"sb_publishable_y6G6nvMYnWpSIpcbrhah_Q_LkvOGktb"
+"https://bqlltjronzrlgbjjntes.supabase.co",
+"sb_publishable_j84bjNzsEw1O-zsvliQ4Wg_BhGkSqR_"
 )
     
   function shuffleArray(arr) {
@@ -360,16 +360,7 @@ if (!data || data.length === 0) {
 setValidateMsg("Esta evaluación no tiene preguntas cargadas.", "small badTxt")
 return
 }
-const { data: evalData, error: evalError } = await supabase
-.from("evaluations")
-.select("preguntas_totales")
-.eq("id", evaluationId)
-.single()
 
-if(evalError || !evalData){
-setValidateMsg("No se encontró la configuración de la evaluación.","small badTxt")
-return
-}
     
 QUESTIONS = data.map(q => ({
   id: q.id,
@@ -383,8 +374,13 @@ QUESTIONS = data.map(q => ({
   correct: ["A","B","C","D"].indexOf(q.respuesta_correcta)
 }))
 
-QUESTIONS = shuffleArray(QUESTIONS).slice(0, Math.min(evalData.preguntas_totales, QUESTIONS.length))
+// ✅ Barajar todas las preguntas
+QUESTIONS = shuffleArray(QUESTIONS)
 
+// ✅ Tomar SOLO 20 preguntas
+QUESTIONS = QUESTIONS.slice(0, 20)
+
+// ✅ Actualizar total de preguntas visibles
 qTotalEl.textContent = String(QUESTIONS.length)
 
 hide(stepValidate);
@@ -397,7 +393,6 @@ current = 0;
 
 renderQuestion();
 startTimer();
-   });
 
   function startTimer() {
 
@@ -427,7 +422,7 @@ startTimer();
 
     const selected = (answers[q.id] ?? null);
 
-    const imgs = (q.images || []).map(src => `<img class="qimg" src="${src}" alt="Imagen de pregunta"/>`).join("");
+    const imgs = "";
 
     const opts = q.options.map((txt, idx) => {
       const checked = (selected === idx) ? "checked" : "";
@@ -520,7 +515,7 @@ auto_submitted: !!isAuto
 }
 
 const { error: saveError } = await supabase
-.from("exam_results")
+.from("evaluation_results")
 .insert(payload)
 
 if(saveError){
