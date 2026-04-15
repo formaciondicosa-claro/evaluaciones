@@ -331,15 +331,7 @@ if (intentoPrevio && intentoPrevio.length > 0) {
   setValidateMsg("Ya presentaste esta evaluación. No puedes ingresar nuevamente.", "small badTxt")
   return
 }
-    const celular = (celularEl.value || "").trim();
-    const email = (emailEl.value || "").trim();
-    const confirm = (confirmEl.value || "").trim().toUpperCase();
-
-    if (!celular || !email) return setValidateMsg("Celular y correo son obligatorios.", "small badTxt");
-    if (confirm !== "ACEPTO") return setValidateMsg('Debes escribir "ACEPTO" para iniciar.', "small badTxt");
-
-    candidate.email = email;
-    candidate.celular = celular;
+    
 
     startedAtMs = Date.now();
     deadlineMs = startedAtMs + DURATION_SECONDS * 1000;
@@ -497,23 +489,20 @@ try {
 
   console.log("SESSION QUE SE ENVIA:", sessionId)
   
-    const payload = {
-session_id: sessionId,
-employee_id: employeeId,
-cedula: (cedulaEl.value || "").trim(),
-nombre: candidate.nombre,
-cargo: candidate.cargo,
-email: candidate.email,
-celular: candidate.celular,
-started_at: new Date(startedAtMs).toISOString(),
-finished_at: new Date(finishedAtMs).toISOString(),
-duration_seconds: durationSeconds,
-score: score,
-total: total,
-percent: percent,
-answers: answers,
-auto_submitted: !!isAuto
-}
+    
+const payload = {
+  session_id: sessionId,
+  employee_id: employeeId,
+  started_at: new Date(startedAtMs).toISOString(),
+  finished_at: new Date(finishedAtMs).toISOString(),
+  duration_seconds: durationSeconds,
+  score,
+  total,
+  percent,
+  answers,
+  auto_submitted: !!isAuto
+};
+
 
 const { error: saveError } = await supabase
 .from("evaluation_results")
@@ -558,11 +547,13 @@ doneText.innerHTML = `
 
     <h3 class="${color}">${mensajeFinal}</h3>
     
-    <p>
-      Cédula: <b>${escapeHtml(payload.cedula)}</b><br/>
-      Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
-      Porcentaje: <b>${payload.percent}%</b>
-    </p>
+    
+p>
+  Cédula: <b>${escapeHtml(cedulaEl.value)}</b><br/>
+  Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
+  Porcentaje: <b>${payload.percent}%</b>
+</p>
+
 
   </div>
 `;
