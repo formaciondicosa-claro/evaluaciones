@@ -117,7 +117,7 @@ const supabase = createClient(
 "https://bqlltjronzrlgbjjntes.supabase.co",
 "sb_publishable_j84bjNzsEw1O-zsvliQ4Wg_BhGkSqR_"
 )
-    
+    document.addEventListener("DOMContentLoaded", () => {
   function shuffleArray(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -600,6 +600,7 @@ function lanzarConfetti() {
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
+    });
 </script>
 </body>
 </html>
