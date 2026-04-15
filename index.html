@@ -355,7 +355,12 @@ QUESTIONS = data.map(q => ({
     q.opcion_c,
     q.opcion_d
   ],
-  correct: ["A","B","C","D"].indexOf(q.respuesta_correcta)
+  correct: {
+  "opcion_a": 0,
+  "opcion_b": 1,
+  "opcion_c": 2,
+  "opcion_d": 3
+}[String(q.respuesta_correcta).toLowerCase().trim()]
 }))
 
 // ✅ Barajar todas las preguntas
