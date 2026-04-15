@@ -55,18 +55,12 @@
         <input id="cedula" inputmode="numeric" placeholder="Ej: 1000123456" />
       </div>
       <div>
-        <label>Celular</label>
-        <input id="celular" inputmode="tel" placeholder="Ej: 3001234567" />
         <label>Token de evaluación</label>
 <input id="token" placeholder="Ej: AB12CD" />
       </div>
     </div>
 
     <div class="row">
-      <div>
-        <label>Correo</label>
-        <input id="email" type="email" placeholder="correo@dominio.com" />
-      </div>
       <div>
         <label>Confirmación</label>
         <input id="confirm" placeholder="Escribe: ACEPTO" />
@@ -151,8 +145,6 @@ let employeeId = null
   const stepDone = document.getElementById("stepDone");
 
   const cedulaEl = document.getElementById("cedula");
-  const celularEl = document.getElementById("celular");
-  const emailEl = document.getElementById("email");
   const confirmEl = document.getElementById("confirm");
   const tokenEl = document.getElementById("token");
 
@@ -538,23 +530,18 @@ if (percent >= 80) {
   mensajeFinal = "💪 No alcanzaste el puntaje requerido, pero puedes lograrlo. Sigue esforzándote.";
   color = "warn";
 }
-
 doneText.innerHTML = `
   <div style="text-align:center">
-    
-    <img src="${imagen}" 
+    <img src="${imagen}"
          style="height:220px;margin-bottom:15px;filter:drop-shadow(0 10px 20px rgba(0,0,0,0.4))"/>
 
     <h3 class="${color}">${mensajeFinal}</h3>
-    
-    
-p>
-  Cédula: <b>${escapeHtml(cedulaEl.value)}</b><br/>
-  Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
-  Porcentaje: <b>${payload.percent}%</b>
-</p>
 
-
+    <p>
+      Cédula: <b>${escapeHtml(cedulaEl.value)}</b><br/>
+      Puntaje: <b>${payload.score} / ${payload.total}</b><br/>
+      Porcentaje: <b>${payload.percent}%</b>
+    </p>
   </div>
 `;
     } catch (e) {
